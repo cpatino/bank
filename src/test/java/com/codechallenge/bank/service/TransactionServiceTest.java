@@ -359,7 +359,7 @@ public class TransactionServiceTest {
     public void findStatusFromChannel_atmChannel_dateAfterCurrent() {
         TransactionStatus expectedStatus = TransactionStatus.builder()
                 .reference("12345A")
-                .status(FUTURE)
+                .status(PENDING)
                 .amount(190.20)
                 .build();
         TransactionStatusRequester requester = TransactionStatusRequester.builder()

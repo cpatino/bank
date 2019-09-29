@@ -25,6 +25,10 @@ public class TransactionStatusRequester extends AbstractModel {
     @JsonProperty
     private Channel channel;
 
+    public TransactionStatusRequester() {
+        super();
+    }
+
     private TransactionStatusRequester(final Builder builder) {
         reference = builder.reference;
         channel = builder.channel;

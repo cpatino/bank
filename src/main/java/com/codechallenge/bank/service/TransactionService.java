@@ -53,7 +53,7 @@ public class TransactionService {
      *
      * @param transaction the one to be saved.
      */
-    public void save(final Transaction transaction) {
+    public Transaction save(final Transaction transaction) {
         checkIsNewTransaction(transaction.getReference());
         Optional<Account> account = accountService.findById(transaction.getAccount().getIban());
         checkBalance(account, transaction);
@@ -63,6 +63,7 @@ public class TransactionService {
                 .account(account.isPresent() ? account.get() : transaction.getAccount())
                 .build());
         logger.info("Saved transaction = {}", savedTransaction);
+        return savedTransaction;
     }
 
     /**
@@ -154,7 +155,7 @@ public class TransactionService {
      */
     private void buildTransactionStatus(final TransactionStatus.Builder builder, final Transaction transaction,
                                         final Channel channel) {
-        Status status = calculateStatus(transaction.getDate());
+        Status status = calculateStatus(transaction.getDate(), channel);
         logger.info("Transaction status = {}");
         builder.reference(transaction.getReference()).status(status);
         if (CLIENT.equals(channel) || ATM.equals(channel)) {
@@ -172,13 +173,13 @@ public class TransactionService {
      * @param date the transaction date
      * @return the {@link Status}
      */
-    private Status calculateStatus(final Date date) {
+    private Status calculateStatus(final Date date, final Channel channel) {
         LocalDate transactionDate = LocalDateUtils.getLocalDateFromDate(date);
         LocalDate currentDate = LocalDate.now();
         logger.info("Transaction date={}, current date={}", transactionDate, currentDate);
         if (transactionDate.isBefore(currentDate)) {
             return SETTLED;
-        } else if (transactionDate.isEqual(currentDate)) {
+        } else if (transactionDate.isEqual(currentDate) || (transactionDate.isAfter(currentDate) && ATM.equals(channel))) {
             return PENDING;
         } else {
             return FUTURE;
