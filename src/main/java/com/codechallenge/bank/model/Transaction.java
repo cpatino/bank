@@ -42,7 +42,7 @@ public class Transaction extends AbstractModel {
     private Transaction(final Builder builder) {
         reference = builder.reference;
         account = builder.account;
-        date = builder.date;
+        date = (builder.date != null) ? builder.date : new Date();
         amount = builder.amount;
         fee = builder.fee;
         description = builder.description;
@@ -80,6 +80,9 @@ public class Transaction extends AbstractModel {
         }
         if (amount == 0) {
             append(builder, "the amount is required and must be different to zero");
+        }
+        if (fee != null && fee < 0) {
+            append(builder, "the fee cannot be less than zero");
         }
         if (builder.length() > 0) {
             throw new IllegalStateException(builder.toString());

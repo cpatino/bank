@@ -81,7 +81,6 @@ public class TransactionSerializerTest {
         Transaction transaction = deserializer.deserialize(jsonParser, deserializationContext);
         assertEquals(expectedReference, transaction.getReference());
         assertEquals(expectedIban, transaction.getAccount().getIban());
-        assertNull(transaction.getDate());
         assertEquals(expectedAmount, transaction.getAmount(), 0);
         assertEquals(expectedFee, transaction.getFee(), 0);
         assertNull(transaction.getDescription());
