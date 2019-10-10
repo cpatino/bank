@@ -1,6 +1,7 @@
 package com.codechallenge.bank.service;
 
 import com.codechallenge.bank.dao.TransactionDAO;
+import com.codechallenge.bank.exception.DataNotFoundException;
 import com.codechallenge.bank.exception.InvalidParameterException;
 import com.codechallenge.bank.model.*;
 import com.codechallenge.bank.util.LocalDateUtils;
@@ -11,10 +12,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import static com.codechallenge.bank.model.Channel.*;
@@ -46,6 +49,17 @@ public class TransactionService {
      */
     public Optional<Transaction> findById(final String reference) {
         return dao.findById(reference);
+    }
+
+    public List<Transaction> findAll() {
+        return dao.findAll();
+    }
+
+    public List<Transaction> findAll(final String iban, final String sortType) {
+        Account account = accountService.findById(iban).orElseThrow(() -> new DataNotFoundException("transactions", iban));
+        return (sortType == null || !("asc".equalsIgnoreCase(sortType) || "desc".equalsIgnoreCase(sortType))) ?
+                dao.findByAccount(account) :
+                dao.findByAccount(account, Sort.by(Sort.Direction.fromString(sortType), "amount"));
     }
 
     /**

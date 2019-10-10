@@ -2,6 +2,7 @@ package com.codechallenge.bank.service;
 
 import com.codechallenge.bank.dao.AccountDAO;
 import com.codechallenge.bank.dao.TransactionDAO;
+import com.codechallenge.bank.exception.DataNotFoundException;
 import com.codechallenge.bank.exception.InvalidParameterException;
 import com.codechallenge.bank.model.Account;
 import com.codechallenge.bank.model.Transaction;
@@ -15,12 +16,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.Optional;
+import java.util.*;
 
 import static com.codechallenge.bank.model.Channel.*;
 import static com.codechallenge.bank.model.Status.*;
@@ -404,6 +404,90 @@ public class TransactionServiceTest {
         assertEquals(expectedStatus, transactionStatus);
         assertEquals(expectedStatus.getAmount(), transactionStatus.getAmount());
         assertEquals(expectedStatus.getFee(), transactionStatus.getFee());
+    }
+
+    @Test(expected = DataNotFoundException.class)
+    public void findTransactionsById_notFound() {
+        when(accountService.findById("ABC123")).thenReturn(Optional.empty());
+        service.findAll("ABC123", null);
+        fail("DataNotFoundException was expected");
+    }
+
+    @Test
+    public void findTransactionsById_found_notSorted() {
+        Transaction expectedTransaction1 = Transaction.builder()
+                .reference("123A")
+                .account("ABC123")
+                .amount(100)
+                .build();
+
+        Transaction expectedTransaction2 = Transaction.builder()
+                .reference("123B")
+                .account("ABC123")
+                .amount(90)
+                .fee(10d)
+                .build();
+
+        List<Transaction> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
+        Account expectedAccount = Account.builder().iban("ABC123").transactions(expectedTransactions).build();
+        when(accountService.findById("ABC123")).thenReturn(Optional.of(expectedAccount));
+        when(dao.findByAccount(expectedAccount)).thenReturn(expectedTransactions);
+
+        List<Transaction> transactions = service.findAll("ABC123", null);
+        assertEquals(expectedTransaction1, transactions.get(0));
+        assertEquals(expectedTransaction2, transactions.get(1));
+    }
+
+    @Test
+    public void findTransactionsById_found_SortedAsc() {
+        Transaction expectedTransaction1 = Transaction.builder()
+                .reference("123A")
+                .account("ABC123")
+                .amount(100)
+                .build();
+
+        Transaction expectedTransaction2 = Transaction.builder()
+                .reference("123B")
+                .account("ABC123")
+                .amount(90)
+                .fee(10d)
+                .build();
+
+        List<Transaction> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
+        Account expectedAccount = Account.builder().iban("ABC123").transactions(expectedTransactions).build();
+        when(accountService.findById("ABC123")).thenReturn(Optional.of(expectedAccount));
+        when(dao.findByAccount(expectedAccount, Sort.by(Sort.Direction.ASC, "amount")))
+                .thenReturn(Arrays.asList(expectedTransaction2, expectedTransaction1));
+
+        List<Transaction> transactions = service.findAll("ABC123", "ASC");
+        assertEquals(expectedTransaction2, transactions.get(0));
+        assertEquals(expectedTransaction1, transactions.get(1));
+    }
+
+    @Test
+    public void findTransactionsById_found_SortedDesc() {
+        Transaction expectedTransaction1 = Transaction.builder()
+                .reference("123A")
+                .account("ABC123")
+                .amount(90)
+                .build();
+
+        Transaction expectedTransaction2 = Transaction.builder()
+                .reference("123B")
+                .account("ABC123")
+                .amount(100)
+                .fee(10d)
+                .build();
+
+        List<Transaction> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
+        Account expectedAccount = Account.builder().iban("ABC123").transactions(expectedTransactions).build();
+        when(accountService.findById("ABC123")).thenReturn(Optional.of(expectedAccount));
+        when(dao.findByAccount(expectedAccount, Sort.by(Sort.Direction.DESC, "amount")))
+                .thenReturn(Arrays.asList(expectedTransaction2, expectedTransaction1));
+
+        List<Transaction> transactions = service.findAll("ABC123", "DESC");
+        assertEquals(expectedTransaction2, transactions.get(0));
+        assertEquals(expectedTransaction1, transactions.get(1));
     }
 
     @Profile("test")

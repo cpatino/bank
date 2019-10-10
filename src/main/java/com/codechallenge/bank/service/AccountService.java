@@ -45,29 +45,4 @@ public class AccountService {
     public List<Account> findAll() {
         return dao.findAll();
     }
-
-    /**
-     * Finds all the {@link Transaction}s linked to the {@link Account} that is registered with the given iban (identifier)
-     *
-     * @param iban the key of the {@link Account}
-     * @return A list with all {@link Transaction}s linked to the {@link Account}
-     */
-    public List<Transaction> findTransactionsById(final String iban, final String sortType) {
-        Optional<Account> account = findById(iban);
-        if (account.isEmpty()) {
-            throw new DataNotFoundException("transactions", iban);
-        }
-        List<Transaction> transactions = account.get().getTransactions();
-        if ("ASC".equalsIgnoreCase(sortType)) {
-            return transactions.stream()
-                    .sorted(Comparator.comparingDouble(Transaction::getAmount))
-                    .collect(Collectors.toList());
-        } else if ("DESC".equalsIgnoreCase(sortType)) {
-            return transactions.stream()
-                    .sorted(Comparator.comparingDouble(Transaction::getAmount).reversed())
-                    .collect(Collectors.toList());
-        } else {
-            return transactions;
-        }
-    }
 }

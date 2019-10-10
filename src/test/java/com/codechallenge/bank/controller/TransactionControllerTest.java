@@ -148,7 +148,7 @@ public class TransactionControllerTest {
                 .build();
 
         List<Transaction> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
-        when(accountService.findTransactionsById("ABC123", null)).thenReturn(expectedTransactions);
+        when(transactionService.findAll("ABC123", null)).thenReturn(expectedTransactions);
         List<Transaction> transactions = controller.findAll("ABC123", null);
         assertEquals(expectedTransactions, transactions);
     }

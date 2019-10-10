@@ -58,6 +58,6 @@ public class TransactionController {
 
     @GetMapping("/{iban}")
     public List<Transaction> findAll(@PathVariable String iban, @RequestHeader(value = "sort-type", required = false) String sortType) {
-        return accountService.findTransactionsById(iban, sortType);
+        return transactionService.findAll(iban, sortType);
     }
 }
