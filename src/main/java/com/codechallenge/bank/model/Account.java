@@ -26,9 +26,8 @@ public class Account extends AbstractModel {
 
     @Id
     private String iban;
-
-    @Column
     private Date date;
+    private double balance;
 
     @OneToMany(fetch = LAZY)
     @JoinColumn(name = "account_iban")
@@ -41,6 +40,7 @@ public class Account extends AbstractModel {
     private Account(Builder builder) {
         iban = builder.iban;
         date = builder.date != null ? builder.date : new Date();
+        balance = builder.balance;
         transactions = builder.transactions;
     }
 
@@ -50,6 +50,10 @@ public class Account extends AbstractModel {
 
     public Date getDate() {
         return date;
+    }
+
+    public double getBalance() {
+        return balance;
     }
 
     public List<Transaction> getTransactions() {
@@ -93,14 +97,26 @@ public class Account extends AbstractModel {
         return new Builder();
     }
 
+    public static Builder builder(final Account account) {
+        return new Builder(account);
+    }
+
     public static class Builder {
 
         private String iban;
         private Date date;
+        private double balance;
         private List<Transaction> transactions = Collections.EMPTY_LIST;
 
         private Builder() {
             super();
+        }
+
+        private Builder(final Account account) {
+            iban(account.iban)
+                    .date(account.date)
+                    .balance(account.balance)
+                    .transactions(account.transactions);
         }
 
         public Builder iban(final String iban) {
@@ -110,6 +126,11 @@ public class Account extends AbstractModel {
 
         public Builder date(final Date date) {
             this.date = date;
+            return this;
+        }
+
+        public Builder balance(final double balance) {
+            this.balance = balance;
             return this;
         }
 

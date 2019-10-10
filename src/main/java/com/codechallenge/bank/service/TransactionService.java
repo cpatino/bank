@@ -56,11 +56,13 @@ public class TransactionService {
     public Transaction save(final Transaction transaction) {
         checkIsNewTransaction(transaction.getReference());
         Optional<Account> account = accountService.findById(transaction.getAccount().getIban());
-        checkBalance(account, transaction);
+        double balance = checkBalance(account, transaction);
         Transaction savedTransaction = dao.save(Transaction.builder(transaction)
                 .reference(StringUtils.isEmpty(transaction.getReference())
                         ? TransactionReferenceGenerator.generate() : transaction.getReference())
-                .account(account.isPresent() ? account.get() : transaction.getAccount())
+                .account(Account.builder(account.isPresent() ? account.get() : transaction.getAccount())
+                        .balance(balance)
+                        .build())
                 .build());
         logger.info("Saved transaction = {}", savedTransaction);
         return savedTransaction;
@@ -96,21 +98,19 @@ public class TransactionService {
      * @param account The {@link Account} that has to be checked.
      * @param newTransaction The {@link Transaction} that is going to be save.
      */
-    private void checkBalance(final Optional<Account> account, final Transaction newTransaction) {
+    private double checkBalance(final Optional<Account> account, final Transaction newTransaction) {
         if (account.isEmpty()) {
             if (newTransaction.getAmount() < 0) {
                 throw new InvalidParameterException("The transaction cannot be saved, the balance account could not be below 0");
             }
+            return newTransaction.getAmount();
         } else {
-            double balance = account.get().getTransactions()
-                    .stream()
-                    .map(t -> t.getAmount())
-                    .mapToDouble(Double::doubleValue)
-                    .sum();
+            double balance = account.get().getBalance() + newTransaction.getAmount();
             logger.info("Balance={} from the account={} before save the new transaction", balance, account.get().getIban());
-            if (balance + newTransaction.getAmount() < 0) {
+            if (balance < 0) {
                 throw new InvalidParameterException("The transaction cannot be saved, the balance account could not be below 0");
             }
+            return balance;
         }
     }
 

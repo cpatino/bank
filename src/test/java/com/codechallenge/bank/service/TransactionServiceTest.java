@@ -116,6 +116,7 @@ public class TransactionServiceTest {
         Account account = Account.builder()
                 .iban("ABC123")
                 .transactions(Collections.singletonList(Transaction.builder().amount(50).build()))
+                .balance(50)
                 .build();
 
         when(dao.findById("12345A")).thenReturn(Optional.empty());
@@ -149,6 +150,7 @@ public class TransactionServiceTest {
         Account account = Account.builder()
                 .iban("ABC123")
                 .transactions(Collections.singletonList(Transaction.builder().amount(50).build()))
+                .balance(50)
                 .build();
 
         when(dao.findById("12345A")).thenReturn(Optional.empty());
