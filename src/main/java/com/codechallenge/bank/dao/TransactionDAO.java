@@ -1,7 +1,7 @@
 package com.codechallenge.bank.dao;
 
-import com.codechallenge.bank.model.Account;
-import com.codechallenge.bank.model.Transaction;
+import com.codechallenge.bank.model.dto.AccountDto;
+import com.codechallenge.bank.model.dto.TransactionDto;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.data.domain.Sort;
@@ -18,9 +18,9 @@ import java.util.List;
  */
 @Repository
 @Scope(value = ConfigurableBeanFactory.SCOPE_SINGLETON)
-public interface TransactionDAO extends JpaRepository<Transaction, String> {
+public interface TransactionDAO extends JpaRepository<TransactionDto, String> {
 
-    List<Transaction> findByAccount(final Account account);
+    List<TransactionDto> findByAccount(final AccountDto account);
 
-    List<Transaction> findByAccount(final Account account, final Sort sort);
+    List<TransactionDto> findByAccount(final AccountDto account, final Sort sort);
 }

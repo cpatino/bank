@@ -4,10 +4,11 @@ import com.codechallenge.bank.dao.AccountDAO;
 import com.codechallenge.bank.dao.TransactionDAO;
 import com.codechallenge.bank.exception.DataNotFoundException;
 import com.codechallenge.bank.exception.InvalidParameterException;
-import com.codechallenge.bank.model.Account;
 import com.codechallenge.bank.model.Transaction;
 import com.codechallenge.bank.model.TransactionStatus;
 import com.codechallenge.bank.model.TransactionStatusRequester;
+import com.codechallenge.bank.model.dto.AccountDto;
+import com.codechallenge.bank.model.dto.TransactionDto;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -20,7 +21,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 import static com.codechallenge.bank.model.Channel.*;
 import static com.codechallenge.bank.model.Status.*;
@@ -48,29 +53,29 @@ public class TransactionServiceTest {
     @Test
     public void findById_notFound() {
         when(dao.findById("12345A")).thenReturn(Optional.empty());
-        Optional<Transaction> transaction = service.findById("12345A");
+        Optional<TransactionDto> transaction = service.findById("12345A");
         assertTrue(transaction.isEmpty());
     }
 
     @Test
     public void findById_found() {
-        Transaction expectedTransaction = Transaction.builder()
+        TransactionDto expectedTransaction = TransactionDto.builder()
                 .reference("12345A")
                 .account("ABC123")
                 .amount(100)
                 .build();
         when(dao.findById("12345A")).thenReturn(Optional.of(expectedTransaction));
-        Optional<Transaction> transaction = service.findById("12345A");
+        Optional<TransactionDto> transaction = service.findById("12345A");
         assertEquals(expectedTransaction, transaction.get());
     }
 
     @Test
     public void save_checkIsNewTransaction_emptyReference_newAccount_positiveBalance() {
-        Transaction expectedTransaction = Transaction.builder()
+        TransactionDto expectedTransaction = TransactionDto.builder()
                 .reference("TEST")
                 .account("ABC123")
                 .amount(100)
-                .date(new Date())
+                .date(LocalDateTime.now())
                 .build();
 
         Transaction transaction = Transaction.builder()
@@ -78,7 +83,7 @@ public class TransactionServiceTest {
                 .amount(100)
                 .build();
         when(accountService.findById("ABC123")).thenReturn(Optional.empty());
-        when(dao.save(any(Transaction.class))).thenReturn(expectedTransaction);
+        when(dao.save(any(TransactionDto.class))).thenReturn(expectedTransaction);
         service.save(transaction);
     }
 
@@ -95,12 +100,17 @@ public class TransactionServiceTest {
 
     @Test(expected = InvalidParameterException.class)
     public void save_checkIsNewTransaction_notEmptyUsedReference() {
-        Transaction transaction = Transaction.builder()
+        TransactionDto expectedTransaction = TransactionDto.builder()
                 .reference("12345A")
                 .account("ABC123")
                 .amount(100)
                 .build();
-        when(dao.findById("12345A")).thenReturn(Optional.of(transaction));
+        Transaction transaction = Transaction.builder()
+          .reference("12345A")
+          .account("ABC123")
+          .amount(100)
+          .build();
+        when(dao.findById("12345A")).thenReturn(Optional.of(expectedTransaction));
         service.save(transaction);
         fail("Expecting invalid parameter exception");
     }
@@ -113,9 +123,9 @@ public class TransactionServiceTest {
                 .amount(-100)
                 .build();
 
-        Account account = Account.builder()
+        AccountDto account = AccountDto.builder()
                 .iban("ABC123")
-                .transactions(Collections.singletonList(Transaction.builder().amount(50).build()))
+                .transactions(Collections.singletonList(TransactionDto.builder().amount(50).build()))
                 .balance(50)
                 .build();
 
@@ -147,9 +157,9 @@ public class TransactionServiceTest {
                 .amount(-40)
                 .build();
 
-        Account account = Account.builder()
+        AccountDto account = AccountDto.builder()
                 .iban("ABC123")
-                .transactions(Collections.singletonList(Transaction.builder().amount(50).build()))
+                .transactions(Collections.singletonList(TransactionDto.builder().amount(50).build()))
                 .balance(50)
                 .build();
 
@@ -176,9 +186,9 @@ public class TransactionServiceTest {
         TransactionStatusRequester requester = TransactionStatusRequester.builder()
                 .reference("12345A")
                 .build();
-        Transaction transaction = Transaction.builder()
+        TransactionDto transaction = TransactionDto.builder()
                 .reference("12345A")
-                .date(new Date(new Date().getTime() - 90000000))
+                .date(LocalDateTime.now().minusDays(1))
                 .amount(193.38)
                 .fee(3.18)
                 .build();
@@ -198,9 +208,9 @@ public class TransactionServiceTest {
                 .reference("12345A")
                 .channel(CLIENT)
                 .build();
-        Transaction transaction = Transaction.builder()
+        TransactionDto transaction = TransactionDto.builder()
                 .reference("12345A")
-                .date(new Date(new Date().getTime() - 90000000))
+                .date(LocalDateTime.now().minusDays(1))
                 .amount(193.38)
                 .fee(3.18)
                 .build();
@@ -222,9 +232,9 @@ public class TransactionServiceTest {
                 .reference("12345A")
                 .channel(ATM)
                 .build();
-        Transaction transaction = Transaction.builder()
+        TransactionDto transaction = TransactionDto.builder()
                 .reference("12345A")
-                .date(new Date(new Date().getTime() - 90000000))
+                .date(LocalDateTime.now().minusDays(1))
                 .amount(193.38)
                 .fee(3.18)
                 .build();
@@ -247,9 +257,9 @@ public class TransactionServiceTest {
                 .reference("12345A")
                 .channel(INTERNAL)
                 .build();
-        Transaction transaction = Transaction.builder()
+        TransactionDto transaction = TransactionDto.builder()
                 .reference("12345A")
-                .date(new Date(new Date().getTime() - 90000000))
+                .date(LocalDateTime.now().minusDays(1))
                 .amount(193.38)
                 .fee(3.18)
                 .build();
@@ -271,9 +281,9 @@ public class TransactionServiceTest {
                 .reference("12345A")
                 .channel(CLIENT)
                 .build();
-        Transaction transaction = Transaction.builder()
+        TransactionDto transaction = TransactionDto.builder()
                 .reference("12345A")
-                .date(new Date())
+                .date(LocalDateTime.now())
                 .amount(193.38)
                 .fee(3.18)
                 .build();
@@ -295,9 +305,9 @@ public class TransactionServiceTest {
                 .reference("12345A")
                 .channel(ATM)
                 .build();
-        Transaction transaction = Transaction.builder()
+        TransactionDto transaction = TransactionDto.builder()
                 .reference("12345A")
-                .date(new Date())
+                .date(LocalDateTime.now())
                 .amount(193.38)
                 .fee(3.18)
                 .build();
@@ -320,9 +330,9 @@ public class TransactionServiceTest {
                 .reference("12345A")
                 .channel(INTERNAL)
                 .build();
-        Transaction transaction = Transaction.builder()
+        TransactionDto transaction = TransactionDto.builder()
                 .reference("12345A")
-                .date(new Date())
+                .date(LocalDateTime.now())
                 .amount(193.38)
                 .fee(3.18)
                 .build();
@@ -344,9 +354,9 @@ public class TransactionServiceTest {
                 .reference("12345A")
                 .channel(CLIENT)
                 .build();
-        Transaction transaction = Transaction.builder()
+        TransactionDto transaction = TransactionDto.builder()
                 .reference("12345A")
-                .date(new Date(new Date().getTime() + 90000000))
+                .date(LocalDateTime.now().plusDays(1))
                 .amount(193.38)
                 .fee(3.18)
                 .build();
@@ -368,9 +378,9 @@ public class TransactionServiceTest {
                 .reference("12345A")
                 .channel(ATM)
                 .build();
-        Transaction transaction = Transaction.builder()
+        TransactionDto transaction = TransactionDto.builder()
                 .reference("12345A")
-                .date(new Date(new Date().getTime() + 90000000))
+                .date(LocalDateTime.now().plusDays(1))
                 .amount(193.38)
                 .fee(3.18)
                 .build();
@@ -393,9 +403,9 @@ public class TransactionServiceTest {
                 .reference("12345A")
                 .channel(INTERNAL)
                 .build();
-        Transaction transaction = Transaction.builder()
+        TransactionDto transaction = TransactionDto.builder()
                 .reference("12345A")
-                .date(new Date(new Date().getTime() + 90000000))
+                .date(LocalDateTime.now().plusDays(1))
                 .amount(193.38)
                 .fee(3.18)
                 .build();
@@ -415,77 +425,77 @@ public class TransactionServiceTest {
 
     @Test
     public void findTransactionsById_found_notSorted() {
-        Transaction expectedTransaction1 = Transaction.builder()
+        TransactionDto expectedTransaction1 = TransactionDto.builder()
                 .reference("123A")
                 .account("ABC123")
                 .amount(100)
                 .build();
 
-        Transaction expectedTransaction2 = Transaction.builder()
+        TransactionDto expectedTransaction2 = TransactionDto.builder()
                 .reference("123B")
                 .account("ABC123")
                 .amount(90)
                 .fee(10d)
                 .build();
 
-        List<Transaction> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
-        Account expectedAccount = Account.builder().iban("ABC123").transactions(expectedTransactions).build();
+        List<TransactionDto> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
+        AccountDto expectedAccount = AccountDto.builder().iban("ABC123").transactions(expectedTransactions).build();
         when(accountService.findById("ABC123")).thenReturn(Optional.of(expectedAccount));
         when(dao.findByAccount(expectedAccount)).thenReturn(expectedTransactions);
 
-        List<Transaction> transactions = service.findAll("ABC123", null);
+        List<TransactionDto> transactions = service.findAll("ABC123", null);
         assertEquals(expectedTransaction1, transactions.get(0));
         assertEquals(expectedTransaction2, transactions.get(1));
     }
 
     @Test
     public void findTransactionsById_found_SortedAsc() {
-        Transaction expectedTransaction1 = Transaction.builder()
+        TransactionDto expectedTransaction1 = TransactionDto.builder()
                 .reference("123A")
                 .account("ABC123")
                 .amount(100)
                 .build();
 
-        Transaction expectedTransaction2 = Transaction.builder()
+        TransactionDto expectedTransaction2 = TransactionDto.builder()
                 .reference("123B")
                 .account("ABC123")
                 .amount(90)
                 .fee(10d)
                 .build();
 
-        List<Transaction> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
-        Account expectedAccount = Account.builder().iban("ABC123").transactions(expectedTransactions).build();
+        List<TransactionDto> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
+        AccountDto expectedAccount = AccountDto.builder().iban("ABC123").transactions(expectedTransactions).build();
         when(accountService.findById("ABC123")).thenReturn(Optional.of(expectedAccount));
         when(dao.findByAccount(expectedAccount, Sort.by(Sort.Direction.ASC, "amount")))
                 .thenReturn(Arrays.asList(expectedTransaction2, expectedTransaction1));
 
-        List<Transaction> transactions = service.findAll("ABC123", "ASC");
+        List<TransactionDto> transactions = service.findAll("ABC123", "ASC");
         assertEquals(expectedTransaction2, transactions.get(0));
         assertEquals(expectedTransaction1, transactions.get(1));
     }
 
     @Test
     public void findTransactionsById_found_SortedDesc() {
-        Transaction expectedTransaction1 = Transaction.builder()
+        TransactionDto expectedTransaction1 = TransactionDto.builder()
                 .reference("123A")
                 .account("ABC123")
                 .amount(90)
                 .build();
 
-        Transaction expectedTransaction2 = Transaction.builder()
+        TransactionDto expectedTransaction2 = TransactionDto.builder()
                 .reference("123B")
                 .account("ABC123")
                 .amount(100)
                 .fee(10d)
                 .build();
 
-        List<Transaction> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
-        Account expectedAccount = Account.builder().iban("ABC123").transactions(expectedTransactions).build();
+        List<TransactionDto> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
+        AccountDto expectedAccount = AccountDto.builder().iban("ABC123").transactions(expectedTransactions).build();
         when(accountService.findById("ABC123")).thenReturn(Optional.of(expectedAccount));
         when(dao.findByAccount(expectedAccount, Sort.by(Sort.Direction.DESC, "amount")))
                 .thenReturn(Arrays.asList(expectedTransaction2, expectedTransaction1));
 
-        List<Transaction> transactions = service.findAll("ABC123", "DESC");
+        List<TransactionDto> transactions = service.findAll("ABC123", "DESC");
         assertEquals(expectedTransaction2, transactions.get(0));
         assertEquals(expectedTransaction1, transactions.get(1));
     }

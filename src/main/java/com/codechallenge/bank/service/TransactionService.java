@@ -4,7 +4,8 @@ import com.codechallenge.bank.dao.TransactionDAO;
 import com.codechallenge.bank.exception.DataNotFoundException;
 import com.codechallenge.bank.exception.InvalidParameterException;
 import com.codechallenge.bank.model.*;
-import com.codechallenge.bank.util.LocalDateUtils;
+import com.codechallenge.bank.model.dto.AccountDto;
+import com.codechallenge.bank.model.dto.TransactionDto;
 import com.codechallenge.bank.util.TransactionReferenceGenerator;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -15,8 +16,8 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.util.Date;
+import javax.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,16 +48,16 @@ public class TransactionService {
      * @param reference the key of the {@link Transaction}
      * @return an {@link Optional} with the transaction if the reference is already in the database, otherwise it will be empty.
      */
-    public Optional<Transaction> findById(final String reference) {
+    public Optional<TransactionDto> findById(final String reference) {
         return dao.findById(reference);
     }
 
-    public List<Transaction> findAll() {
+    public List<TransactionDto> findAll() {
         return dao.findAll();
     }
 
-    public List<Transaction> findAll(final String iban, final String sortType) {
-        Account account = accountService.findById(iban).orElseThrow(() -> new DataNotFoundException("transactions", iban));
+    public List<TransactionDto> findAll(final String iban, final String sortType) {
+        AccountDto account = accountService.findById(iban).orElseThrow(() -> new DataNotFoundException("transactions", iban));
         return (sortType == null || !("asc".equalsIgnoreCase(sortType) || "desc".equalsIgnoreCase(sortType))) ?
                 dao.findByAccount(account) :
                 dao.findByAccount(account, Sort.by(Sort.Direction.fromString(sortType), "amount"));
@@ -67,16 +68,17 @@ public class TransactionService {
      *
      * @param transaction the one to be saved.
      */
-    public Transaction save(final Transaction transaction) {
+    @Transactional
+    public TransactionDto save(final Transaction transaction) {
         checkIsNewTransaction(transaction.getReference());
-        Optional<Account> account = accountService.findById(transaction.getAccount().getIban());
+        Optional<AccountDto> account = accountService.findById(transaction.getAccount());
         double balance = checkBalance(account, transaction);
-        Transaction savedTransaction = dao.save(Transaction.builder(transaction)
+        AccountDto accountDto = account.orElse(AccountDto.builder(transaction.getAccount()).build());
+        accountDto = accountService.save(AccountDto.builder(accountDto).balance(balance).build());
+        TransactionDto savedTransaction = dao.save(TransactionDto.builder(transaction)
                 .reference(StringUtils.isEmpty(transaction.getReference())
                         ? TransactionReferenceGenerator.generate() : transaction.getReference())
-                .account(Account.builder(account.isPresent() ? account.get() : transaction.getAccount())
-                        .balance(balance)
-                        .build())
+                .account(accountDto)
                 .build());
         logger.info("Saved transaction = {}", savedTransaction);
         return savedTransaction;
@@ -89,7 +91,7 @@ public class TransactionService {
      * @return A {@link TransactionStatus} with the details.
      */
     public TransactionStatus findStatusFromChannel(final TransactionStatusRequester requester) {
-        Optional<Transaction> transaction = findById(requester.getReference());
+        Optional<TransactionDto> transaction = findById(requester.getReference());
         return buildTransactionStatus(transaction, requester);
     }
 
@@ -109,10 +111,10 @@ public class TransactionService {
      * Checks that the balance after apply the new amount is not below zero, also if it is a new account, it checks that
      * the first transaction is not a credit.
      *
-     * @param account The {@link Account} that has to be checked.
+     * @param account The {@link AccountDto} that has to be checked.
      * @param newTransaction The {@link Transaction} that is going to be save.
      */
-    private double checkBalance(final Optional<Account> account, final Transaction newTransaction) {
+    private double checkBalance(final Optional<AccountDto> account, final Transaction newTransaction) {
         if (account.isEmpty()) {
             if (newTransaction.getAmount() < 0) {
                 throw new InvalidParameterException("The transaction cannot be saved, the balance account could not be below 0");
@@ -137,7 +139,7 @@ public class TransactionService {
      * @param requester the requester with the details to be checked to build the status to be returned.
      * @return a {@link TransactionStatus}
      */
-    private TransactionStatus buildTransactionStatus(Optional<Transaction> transaction, TransactionStatusRequester requester) {
+    private TransactionStatus buildTransactionStatus(Optional<TransactionDto> transaction, TransactionStatusRequester requester) {
         TransactionStatus.Builder builder = TransactionStatus.builder();
         if (transaction.isEmpty()) {
             builder.reference(requester.getReference()).status(INVALID);
@@ -167,7 +169,7 @@ public class TransactionService {
      * @param transaction the {@link Transaction} stored in the database
      * @param channel the type of {@link Channel} that is asking for the status.
      */
-    private void buildTransactionStatus(final TransactionStatus.Builder builder, final Transaction transaction,
+    private void buildTransactionStatus(final TransactionStatus.Builder builder, final TransactionDto transaction,
                                         final Channel channel) {
         Status status = calculateStatus(transaction.getDate(), channel);
         logger.info("Transaction status = {}");
@@ -184,16 +186,16 @@ public class TransactionService {
     /**
      * Calculates the {@link Status} using the date from the {@link Transaction} stored in the database.
      *
-     * @param date the transaction date
+     * @param transactionDate the transaction date
      * @return the {@link Status}
      */
-    private Status calculateStatus(final Date date, final Channel channel) {
-        LocalDate transactionDate = LocalDateUtils.getLocalDateFromDate(date);
-        LocalDate currentDate = LocalDate.now();
+    private Status calculateStatus(final LocalDateTime transactionDate, final Channel channel) {
+        LocalDateTime currentDate = LocalDateTime.now();
         logger.info("Transaction date={}, current date={}", transactionDate, currentDate);
-        if (transactionDate.isBefore(currentDate)) {
+        if (transactionDate.toLocalDate().isBefore(currentDate.toLocalDate())) {
             return SETTLED;
-        } else if (transactionDate.isEqual(currentDate) || (transactionDate.isAfter(currentDate) && ATM.equals(channel))) {
+        } else if (transactionDate.toLocalDate().isEqual(currentDate.toLocalDate())
+          || (transactionDate.toLocalDate().isAfter(currentDate.toLocalDate()) && ATM.equals(channel))) {
             return PENDING;
         } else {
             return FUTURE;
@@ -206,7 +208,7 @@ public class TransactionService {
      * @param transaction the {@link Transaction} stored in the database
      * @return the new calculated amount.
      */
-    private double calculateAmountSubtractingFee(final Transaction transaction) {
+    private double calculateAmountSubtractingFee(final TransactionDto transaction) {
         boolean hasToTurnPositive = (transaction.getAmount() < 0);
         double amount = hasToTurnPositive ? transaction.getAmount() * -1 : transaction.getAmount();
         double fee = transaction.getFee() != null ? transaction.getFee() : 0;

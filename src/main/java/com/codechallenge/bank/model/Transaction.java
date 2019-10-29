@@ -1,12 +1,12 @@
 package com.codechallenge.bank.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-import javax.persistence.*;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 import static com.codechallenge.bank.util.StringBuilderUtils.append;
 import static org.apache.commons.lang3.builder.ToStringStyle.NO_CLASS_NAME_STYLE;
@@ -17,22 +17,14 @@ import static org.apache.commons.lang3.builder.ToStringStyle.NO_CLASS_NAME_STYLE
  * @author Carlos Rodriguez
  * @since 25/09/2019
  */
-@Entity(name = "account_transaction")
 public class Transaction extends AbstractModel {
 
-    @Id
     private String reference;
-
-    @ManyToOne(cascade = CascadeType.ALL)
-    private Account account;
-
-    private Date date;
-
-    @Column(nullable = false)
+    @JsonProperty("account_iban")
+    private String account;
+    private LocalDateTime date;
     private double amount;
-
     private Double fee;
-
     private String description;
 
     public Transaction() {
@@ -42,7 +34,7 @@ public class Transaction extends AbstractModel {
     private Transaction(final Builder builder) {
         reference = builder.reference;
         account = builder.account;
-        date = (builder.date != null) ? builder.date : new Date();
+        date = (builder.date != null) ? builder.date : LocalDateTime.now();
         amount = builder.amount;
         fee = builder.fee;
         description = builder.description;
@@ -52,11 +44,11 @@ public class Transaction extends AbstractModel {
         return reference;
     }
 
-    public Account getAccount() {
+    public String getAccount() {
         return account;
     }
 
-    public Date getDate() {
+    public LocalDateTime getDate() {
         return date;
     }
 
@@ -75,7 +67,7 @@ public class Transaction extends AbstractModel {
     @Override
     public void validate() {
         StringBuilder builder = new StringBuilder();
-        if (account == null || StringUtils.isEmpty(account.getIban())) {
+        if (StringUtils.isEmpty(account)) {
             append(builder, "the IBAN number of the account is required");
         }
         if (amount == 0) {
@@ -122,8 +114,8 @@ public class Transaction extends AbstractModel {
     public static class Builder {
 
         private String reference;
-        private Account account;
-        private Date date;
+        private String account;
+        private LocalDateTime date;
         private double amount;
         private Double fee;
         private String description;
@@ -147,16 +139,11 @@ public class Transaction extends AbstractModel {
         }
 
         public Builder account(final String accountIban) {
-            this.account = Account.builder().iban(accountIban).build();
+            this.account = accountIban;
             return this;
         }
 
-        public Builder account(final Account account) {
-            this.account = account;
-            return this;
-        }
-
-        public Builder date(final Date date) {
+        public Builder date(final LocalDateTime date) {
             this.date = date;
             return this;
         }

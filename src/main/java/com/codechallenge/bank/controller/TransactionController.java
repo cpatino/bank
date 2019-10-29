@@ -2,6 +2,7 @@ package com.codechallenge.bank.controller;
 
 import com.codechallenge.bank.exception.InvalidParameterException;
 import com.codechallenge.bank.model.Transaction;
+import com.codechallenge.bank.model.dto.TransactionDto;
 import com.codechallenge.bank.service.AccountService;
 import com.codechallenge.bank.service.TransactionService;
 import org.slf4j.Logger;
@@ -34,11 +35,11 @@ public class TransactionController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(path= { "/", "" }, consumes = "application/json")
-    public Transaction create(@RequestBody final Transaction transaction) {
+    public TransactionDto create(@RequestBody final Transaction transaction) {
         logger.info("Transaction to be saved: {}", transaction);
         try {
             transaction.validate();
-            Transaction savedTransaction = transactionService.save(transaction);
+            TransactionDto savedTransaction = transactionService.save(transaction);
             logger.info("The transaction was saved correctly");
             return savedTransaction;
         } catch (IllegalStateException | NullPointerException ex) {
@@ -48,16 +49,13 @@ public class TransactionController {
     }
 
     @GetMapping(path= { "/", "" }, produces = "application/json")
-    public List<Transaction> findAll() {
+    public List<TransactionDto> findAll() {
         logger.info("Find all transactions");
-        return accountService.findAll().stream()
-                .map(account -> account.getTransactions())
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+        return transactionService.findAll();
     }
 
     @GetMapping("/{iban}")
-    public List<Transaction> findAll(@PathVariable String iban, @RequestHeader(value = "sort-type", required = false) String sortType) {
+    public List<TransactionDto> findAll(@PathVariable String iban, @RequestHeader(value = "sort-type", required = false) String sortType) {
         return transactionService.findAll(iban, sortType);
     }
 }

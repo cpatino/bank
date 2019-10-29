@@ -1,9 +1,7 @@
 package com.codechallenge.bank.service;
 
 import com.codechallenge.bank.dao.AccountDAO;
-import com.codechallenge.bank.exception.DataNotFoundException;
-import com.codechallenge.bank.model.Account;
-import com.codechallenge.bank.model.Transaction;
+import com.codechallenge.bank.model.dto.AccountDto;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -15,12 +13,12 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 /**
@@ -40,31 +38,31 @@ public class AccountServiceTest {
     @Test
     public void findById_notFound() {
         when(dao.findById("ABC123")).thenReturn(Optional.empty());
-        Optional<Account> account = service.findById("ABC123");
+        Optional<AccountDto> account = service.findById("ABC123");
         assertTrue(account.isEmpty());
     }
 
     @Test
     public void findById_found() {
-        Account expectedAccount = Account.builder().iban("ABC123").build();
+        AccountDto expectedAccount = AccountDto.builder().iban("ABC123").build();
         when(dao.findById("ABC123")).thenReturn(Optional.of(expectedAccount));
-        Optional<Account> account = service.findById("ABC123");
+        Optional<AccountDto> account = service.findById("ABC123");
         assertEquals(expectedAccount, account.get());
     }
 
     @Test
     public void findAll_notFound() {
         when(dao.findAll()).thenReturn(Collections.EMPTY_LIST);
-        List<Account> accounts = service.findAll();
+        List<AccountDto> accounts = service.findAll();
         assertTrue(accounts.isEmpty());
     }
 
     @Test
     public void findAll_found() {
-        Account expectedAccount = Account.builder().iban("ABC123").build();
-        List<Account> expectedAccounts = Collections.singletonList(expectedAccount);
+        AccountDto expectedAccount = AccountDto.builder().iban("ABC123").build();
+        List<AccountDto> expectedAccounts = Collections.singletonList(expectedAccount);
         when(dao.findAll()).thenReturn(expectedAccounts);
-        List<Account> accounts = service.findAll();
+        List<AccountDto> accounts = service.findAll();
         assertEquals(expectedAccounts, accounts);
         assertEquals(expectedAccount, accounts.get(0));
     }

@@ -3,8 +3,9 @@ package com.codechallenge.bank.controller;
 import com.codechallenge.bank.dao.AccountDAO;
 import com.codechallenge.bank.dao.TransactionDAO;
 import com.codechallenge.bank.exception.InvalidParameterException;
-import com.codechallenge.bank.model.Account;
 import com.codechallenge.bank.model.Transaction;
+import com.codechallenge.bank.model.dto.AccountDto;
+import com.codechallenge.bank.model.dto.TransactionDto;
 import com.codechallenge.bank.service.AccountService;
 import com.codechallenge.bank.service.TransactionService;
 import org.junit.Test;
@@ -71,31 +72,29 @@ public class TransactionControllerTest {
 
     @Test
     public void findAll_noData() {
-        Account account = Account.builder().iban("ABC123").build();
-        when(accountService.findAll()).thenReturn(Collections.singletonList(account));
-        List<Transaction> transactions = controller.findAll();
+        when(transactionService.findAll()).thenReturn(Collections.emptyList());
+        List<TransactionDto> transactions = controller.findAll();
         assertEquals(Collections.emptyList(), transactions);
     }
 
     @Test
     public void findAll_transactionsInOneAccount() {
-        Transaction expectedTransaction1 = Transaction.builder()
+        TransactionDto expectedTransaction1 = TransactionDto.builder()
                 .reference("123A")
                 .account("ABC123")
                 .amount(100)
                 .build();
 
-        Transaction expectedTransaction2 = Transaction.builder()
+        TransactionDto expectedTransaction2 = TransactionDto.builder()
                 .reference("123B")
                 .account("ABC123")
                 .amount(90)
                 .fee(10d)
                 .build();
 
-        List<Transaction> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
-        Account account = Account.builder().iban("ABC123").transactions(expectedTransactions).build();
-        when(accountService.findAll()).thenReturn(Collections.singletonList(account));
-        List<Transaction> transactions = controller.findAll();
+        List<TransactionDto> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
+        when(transactionService.findAll()).thenReturn(expectedTransactions);
+        List<TransactionDto> transactions = controller.findAll();
         assertEquals(expectedTransactions, transactions);
         assertEquals(expectedTransaction1, transactions.get(0));
         assertEquals(expectedTransaction2, transactions.get(1));
@@ -103,30 +102,22 @@ public class TransactionControllerTest {
 
     @Test
     public void findAll_transactionsInMultipleAccounts() {
-        Transaction expectedTransaction1 = Transaction.builder()
+        TransactionDto expectedTransaction1 = TransactionDto.builder()
                 .reference("123A")
                 .account("ABC123")
                 .amount(100)
                 .build();
 
-        Transaction expectedTransaction2 = Transaction.builder()
+        TransactionDto expectedTransaction2 = TransactionDto.builder()
                 .reference("123B")
                 .account("ABC123")
                 .amount(90)
                 .fee(10d)
                 .build();
 
-        List<Transaction> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
-        Account account1 = Account.builder()
-                .iban("ABC123")
-                .transactions(Collections.singletonList(expectedTransaction1))
-                .build();
-        Account account2 = Account.builder()
-                .iban("ABC124")
-                .transactions(Collections.singletonList(expectedTransaction2))
-                .build();
-        when(accountService.findAll()).thenReturn(Arrays.asList(account1, account2));
-        List<Transaction> transactions = controller.findAll();
+        List<TransactionDto> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
+        when(transactionService.findAll()).thenReturn(expectedTransactions);
+        List<TransactionDto> transactions = controller.findAll();
         assertEquals(expectedTransactions, transactions);
         assertEquals(expectedTransaction1, transactions.get(0));
         assertEquals(expectedTransaction2, transactions.get(1));
@@ -134,22 +125,22 @@ public class TransactionControllerTest {
 
     @Test
     public void findAll_iban() {
-        Transaction expectedTransaction1 = Transaction.builder()
+        TransactionDto expectedTransaction1 = TransactionDto.builder()
                 .reference("123A")
                 .account("ABC123")
                 .amount(100)
                 .build();
 
-        Transaction expectedTransaction2 = Transaction.builder()
+        TransactionDto expectedTransaction2 = TransactionDto.builder()
                 .reference("123B")
                 .account("ABC123")
                 .amount(90)
                 .fee(10d)
                 .build();
 
-        List<Transaction> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
+        List<TransactionDto> expectedTransactions = Arrays.asList(expectedTransaction1, expectedTransaction2);
         when(transactionService.findAll("ABC123", null)).thenReturn(expectedTransactions);
-        List<Transaction> transactions = controller.findAll("ABC123", null);
+        List<TransactionDto> transactions = controller.findAll("ABC123", null);
         assertEquals(expectedTransactions, transactions);
     }
 
