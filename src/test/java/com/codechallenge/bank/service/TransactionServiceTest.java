@@ -3,7 +3,6 @@ package com.codechallenge.bank.service;
 import com.codechallenge.bank.dao.AccountDAO;
 import com.codechallenge.bank.dao.TransactionDAO;
 import com.codechallenge.bank.exception.DataNotFoundException;
-import com.codechallenge.bank.exception.InvalidParameterException;
 import com.codechallenge.bank.model.Transaction;
 import com.codechallenge.bank.model.TransactionStatus;
 import com.codechallenge.bank.model.TransactionStatusRequester;
@@ -20,6 +19,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -87,7 +87,7 @@ public class TransactionServiceTest {
         service.save(transaction);
     }
 
-    @Test(expected = InvalidParameterException.class)
+    @Test(expected = ResponseStatusException.class)
     public void save_checkIsNewTransaction_emptyReference_newAccount_negativeBalance() {
         Transaction transaction = Transaction.builder()
                 .account("ABC123")
@@ -98,7 +98,7 @@ public class TransactionServiceTest {
         fail("Expecting invalid parameter exception");
     }
 
-    @Test(expected = InvalidParameterException.class)
+    @Test(expected = ResponseStatusException.class)
     public void save_checkIsNewTransaction_notEmptyUsedReference() {
         TransactionDto expectedTransaction = TransactionDto.builder()
                 .reference("12345A")
@@ -115,7 +115,7 @@ public class TransactionServiceTest {
         fail("Expecting invalid parameter exception");
     }
 
-    @Test(expected = InvalidParameterException.class)
+    @Test(expected = ResponseStatusException.class)
     public void save_checkBalance_oldAccount_negativeBalance() {
         Transaction transaction = Transaction.builder()
                 .reference("12345A")
@@ -144,7 +144,7 @@ public class TransactionServiceTest {
         when(accountService.findById("ABC123")).thenReturn(Optional.empty());
         try {
             service.save(transaction);
-        } catch (InvalidParameterException ex) {
+        } catch (ResponseStatusException ex) {
             fail("Not expecting invalid parameter exception");
         }
     }
@@ -167,7 +167,7 @@ public class TransactionServiceTest {
         when(accountService.findById("ABC123")).thenReturn(Optional.of(account));
         try {
             service.save(transaction);
-        } catch (InvalidParameterException ex) {
+        } catch (ResponseStatusException ex) {
             fail("Not expecting invalid parameter exception");
         }
     }
@@ -181,7 +181,7 @@ public class TransactionServiceTest {
         assertEquals(expectedStatus, transactionStatus);
     }
 
-    @Test(expected = InvalidParameterException.class)
+    @Test(expected = ResponseStatusException.class)
     public void findStatusFromChannel_noChannelProvided_dateBeforeCurrent() {
         TransactionStatusRequester requester = TransactionStatusRequester.builder()
                 .reference("12345A")

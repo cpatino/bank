@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 
 /**
  * To control the request for the /transactionStatus REST endpoint
@@ -31,7 +32,7 @@ public class TransactionStatusController {
   private TransactionService service;
   
   @GetMapping(path = {"/", ""}, produces = "application/json", consumes = "application/json")
-  public TransactionStatus find(@RequestBody @Valid final TransactionStatusRequester requester) {
+  public TransactionStatus find(@RequestBody @Valid @NotNull final TransactionStatusRequester requester) {
     logger.info("Requester: {} that will be used to check the status", requester);
     TransactionStatus transactionStatus = service.findStatusFromChannel(requester);
     logger.info("Status: {} from reference: {}", transactionStatus, requester.getReference());

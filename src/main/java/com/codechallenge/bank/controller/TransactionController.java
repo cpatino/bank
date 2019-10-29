@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 /**
@@ -35,7 +36,7 @@ public class TransactionController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(path= { "/", "" }, consumes = "application/json")
-    public TransactionDto create(@RequestBody @Valid final Transaction transaction) {
+    public TransactionDto create(@RequestBody @Valid @NotNull final Transaction transaction) {
         logger.info("Transaction to be saved: {}", transaction);
         TransactionDto savedTransaction = transactionService.save(transaction);
         logger.info("The transaction was saved correctly");

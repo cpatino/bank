@@ -1,7 +1,6 @@
 package com.codechallenge.bank.util;
 
 import com.codechallenge.bank.exception.DataNotFoundException;
-import com.codechallenge.bank.exception.InvalidParameterException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,13 +20,6 @@ public class BankControllerAdvice {
     @ExceptionHandler(DataNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public String dataNotFoundHandler(final DataNotFoundException ex) {
-        return ex.getMessage();
-    }
-
-    @ResponseBody
-    @ExceptionHandler(InvalidParameterException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public String invalidParameterHandler(final InvalidParameterException ex) {
         return ex.getMessage();
     }
 }

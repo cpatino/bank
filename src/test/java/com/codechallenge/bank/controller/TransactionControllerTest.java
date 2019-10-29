@@ -2,9 +2,7 @@ package com.codechallenge.bank.controller;
 
 import com.codechallenge.bank.dao.AccountDAO;
 import com.codechallenge.bank.dao.TransactionDAO;
-import com.codechallenge.bank.exception.InvalidParameterException;
 import com.codechallenge.bank.model.Transaction;
-import com.codechallenge.bank.model.dto.AccountDto;
 import com.codechallenge.bank.model.dto.TransactionDto;
 import com.codechallenge.bank.service.AccountService;
 import com.codechallenge.bank.service.TransactionService;
@@ -18,6 +16,8 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -44,18 +44,6 @@ public class TransactionControllerTest {
     @Autowired
     private AccountService accountService;
 
-    @Test(expected = InvalidParameterException.class)
-    public void create_notValidMessage() {
-        controller.create(Transaction.builder().build());
-        fail("InvalidParameterException was expected");
-    }
-
-    @Test(expected = InvalidParameterException.class)
-    public void create_nullMessage() {
-        controller.create(null);
-        fail("InvalidParameterException was expected");
-    }
-
     @Test
     public void create_validMessage() {
         Transaction transaction = Transaction.builder()
@@ -65,7 +53,7 @@ public class TransactionControllerTest {
         try {
             controller.create(transaction);
             verify(transactionService, times(1)).save(transaction);
-        } catch (InvalidParameterException ex) {
+        } catch (ResponseStatusException ex) {
             fail("Expecting invalidParameterException was expected");
         }
     }

@@ -1,7 +1,6 @@
 package com.codechallenge.bank.util;
 
 import com.codechallenge.bank.exception.DataNotFoundException;
-import com.codechallenge.bank.exception.InvalidParameterException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -22,12 +21,5 @@ public class BankControllerAdviceTest {
         DataNotFoundException exception = new DataNotFoundException("type", "abc");
         String message = bankControllerAdvice.dataNotFoundHandler(exception);
         assertEquals("Could not find type using abc", message);
-    }
-
-    @Test
-    public void invalidParameterHandler_checkMessageIsDelivered() {
-        InvalidParameterException exception = new InvalidParameterException("exception");
-        String message = bankControllerAdvice.invalidParameterHandler(exception);
-        assertEquals("exception", message);
     }
 }

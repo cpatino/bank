@@ -2,7 +2,6 @@ package com.codechallenge.bank.service;
 
 import com.codechallenge.bank.dao.TransactionDAO;
 import com.codechallenge.bank.exception.DataNotFoundException;
-import com.codechallenge.bank.exception.InvalidParameterException;
 import com.codechallenge.bank.model.*;
 import com.codechallenge.bank.model.dto.AccountDto;
 import com.codechallenge.bank.model.dto.TransactionDto;
@@ -15,6 +14,7 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
@@ -23,6 +23,7 @@ import java.util.Optional;
 
 import static com.codechallenge.bank.model.Channel.*;
 import static com.codechallenge.bank.model.Status.*;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 /**
  * Transaction service with the business logic implementation
@@ -102,7 +103,7 @@ public class TransactionService {
      */
     private void checkIsNewTransaction(String reference) {
         if (StringUtils.isNotEmpty(reference) && dao.findById(reference).isPresent()) {
-            throw new InvalidParameterException("The transaction cannot be saved, the reference "
+            throw new ResponseStatusException(BAD_REQUEST, "The transaction cannot be saved, the reference "
                     + reference + " was already used in other transaction");
         }
     }
@@ -117,14 +118,14 @@ public class TransactionService {
     private double checkBalance(final Optional<AccountDto> account, final Transaction newTransaction) {
         if (account.isEmpty()) {
             if (newTransaction.getAmount() < 0) {
-                throw new InvalidParameterException("The transaction cannot be saved, the balance account could not be below 0");
+                throw new ResponseStatusException(BAD_REQUEST, "The transaction cannot be saved, the balance account could not be below 0");
             }
             return newTransaction.getAmount();
         } else {
             double balance = account.get().getBalance() + newTransaction.getAmount();
             logger.info("Balance={} from the account={} before save the new transaction", balance, account.get().getIban());
             if (balance < 0) {
-                throw new InvalidParameterException("The transaction cannot be saved, the balance account could not be below 0");
+                throw new ResponseStatusException(BAD_REQUEST, "The transaction cannot be saved, the balance account could not be below 0");
             }
             return balance;
         }
@@ -179,7 +180,7 @@ public class TransactionService {
         } else if (INTERNAL.equals(channel)) {
             builder.amount(transaction.getAmount()).fee(transaction.getFee());
         } else {
-            throw new InvalidParameterException("Please provide a channel for the given reference");
+            throw new ResponseStatusException(BAD_REQUEST, "Please provide a channel for the given reference");
         }
     }
 
@@ -209,9 +210,11 @@ public class TransactionService {
      * @return the new calculated amount.
      */
     private double calculateAmountSubtractingFee(final TransactionDto transaction) {
-        boolean hasToTurnPositive = (transaction.getAmount() < 0);
-        double amount = hasToTurnPositive ? transaction.getAmount() * -1 : transaction.getAmount();
-        double fee = transaction.getFee() != null ? transaction.getFee() : 0;
-        return (amount - fee) * (hasToTurnPositive ? -1 : 1);
+        int signChanger = (transaction.getAmount() < 0) ? -1 : 1;
+        double fee = Optional.ofNullable(transaction.getFee()).orElse(0.0);
+        return Optional.of(transaction.getAmount())
+          .map(Math::abs)
+          .map((amount) -> (amount - fee) * signChanger)
+          .orElse(transaction.getAmount());
     }
 }

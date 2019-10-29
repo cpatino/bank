@@ -2,7 +2,6 @@ package com.codechallenge.bank.controller;
 
 import com.codechallenge.bank.dao.AccountDAO;
 import com.codechallenge.bank.dao.TransactionDAO;
-import com.codechallenge.bank.exception.InvalidParameterException;
 import com.codechallenge.bank.model.TransactionStatus;
 import com.codechallenge.bank.model.TransactionStatusRequester;
 import com.codechallenge.bank.service.AccountService;
@@ -17,6 +16,8 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.server.ResponseStatusException;
 
 import static com.codechallenge.bank.model.Status.INVALID;
 import static org.junit.Assert.assertEquals;
@@ -36,19 +37,6 @@ public class TransactionStatusControllerTest {
 
     @Autowired
     private TransactionStatusController controller;
-
-    @Test(expected = InvalidParameterException.class)
-    public void find_notValidMessage() {
-        TransactionStatusRequester requester = TransactionStatusRequester.builder().build();
-        controller.find(requester);
-        fail("InvalidParameterException was expected");
-    }
-
-    @Test(expected = InvalidParameterException.class)
-    public void find_nullMessage() {
-        controller.find(null);
-        fail("InvalidParameterException was expected");
-    }
 
     @Test
     public void find_validMessage() {
