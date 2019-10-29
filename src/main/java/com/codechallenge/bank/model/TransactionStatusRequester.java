@@ -1,13 +1,12 @@
 package com.codechallenge.bank.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-import static com.codechallenge.bank.util.StringBuilderUtils.append;
+import javax.validation.constraints.NotEmpty;
+
 import static org.apache.commons.lang3.builder.ToStringStyle.NO_CLASS_NAME_STYLE;
 
 /**
@@ -17,91 +16,78 @@ import static org.apache.commons.lang3.builder.ToStringStyle.NO_CLASS_NAME_STYLE
  * @since 27/09/2019
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class TransactionStatusRequester extends AbstractModel {
-
-    @JsonProperty
+public class TransactionStatusRequester {
+  
+  @NotEmpty(message = "the reference is required")
+  private String reference;
+  private Channel channel;
+  
+  public TransactionStatusRequester() {
+    super();
+  }
+  
+  private TransactionStatusRequester(final Builder builder) {
+    reference = builder.reference;
+    channel = builder.channel;
+  }
+  
+  public static Builder builder() {
+    return new Builder();
+  }
+  
+  public String getReference() {
+    return reference;
+  }
+  
+  public Channel getChannel() {
+    return channel;
+  }
+  
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    TransactionStatusRequester that = (TransactionStatusRequester) o;
+    return new EqualsBuilder()
+      .append(reference, that.reference)
+      .append(channel, that.channel)
+      .isEquals();
+  }
+  
+  @Override
+  public int hashCode() {
+    return new HashCodeBuilder(17, 37)
+      .append(reference)
+      .append(channel)
+      .toHashCode();
+  }
+  
+  @Override
+  public String toString() {
+    return ReflectionToStringBuilder.toString(this, NO_CLASS_NAME_STYLE);
+  }
+  
+  public static class Builder {
+    
     private String reference;
-
-    @JsonProperty
     private Channel channel;
-
-    public TransactionStatusRequester() {
-        super();
+    
+    private Builder() {
+      super();
     }
-
-    private TransactionStatusRequester(final Builder builder) {
-        reference = builder.reference;
-        channel = builder.channel;
+    
+    public Builder reference(final String reference) {
+      this.reference = reference;
+      return this;
     }
-
-    public String getReference() {
-        return reference;
+    
+    public Builder channel(final Channel channel) {
+      this.channel = channel;
+      return this;
     }
-
-    public Channel getChannel() {
-        return channel;
+    
+    public TransactionStatusRequester build() {
+      return new TransactionStatusRequester(this);
     }
-
-    @Override
-    public void validate() {
-        StringBuilder builder = new StringBuilder();
-        if (StringUtils.isEmpty(reference)) {
-            append(builder, "the reference is required");
-        }
-        if (builder.length() > 0) {
-            throw new IllegalStateException(builder.toString());
-        }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        TransactionStatusRequester that = (TransactionStatusRequester) o;
-        return new EqualsBuilder()
-                .append(reference, that.reference)
-                .append(channel, that.channel)
-                .isEquals();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-                .append(reference)
-                .append(channel)
-                .toHashCode();
-    }
-
-    @Override
-    public String toString() {
-        return ReflectionToStringBuilder.toString(this, NO_CLASS_NAME_STYLE);
-    }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static class Builder {
-
-        private String reference;
-        private Channel channel;
-
-        private Builder() {
-            super();
-        }
-
-        public Builder reference(final String reference) {
-            this.reference = reference;
-            return this;
-        }
-
-        public Builder channel(final Channel channel) {
-            this.channel = channel;
-            return this;
-        }
-
-        public TransactionStatusRequester build() {
-            return new TransactionStatusRequester(this);
-        }
-    }
+  }
 }

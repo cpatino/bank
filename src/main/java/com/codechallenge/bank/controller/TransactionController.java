@@ -1,6 +1,5 @@
 package com.codechallenge.bank.controller;
 
-import com.codechallenge.bank.exception.InvalidParameterException;
 import com.codechallenge.bank.model.Transaction;
 import com.codechallenge.bank.model.dto.TransactionDto;
 import com.codechallenge.bank.service.AccountService;
@@ -9,11 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collection;
+import javax.validation.Valid;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * To control the request for the /transactions REST endpoint
@@ -21,6 +20,7 @@ import java.util.stream.Collectors;
  * @author Carlos Rodriguez
  * @since 25/09/2019
  */
+@Validated
 @RestController
 @RequestMapping(path = "/transactions")
 public class TransactionController {
@@ -35,17 +35,11 @@ public class TransactionController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(path= { "/", "" }, consumes = "application/json")
-    public TransactionDto create(@RequestBody final Transaction transaction) {
+    public TransactionDto create(@RequestBody @Valid final Transaction transaction) {
         logger.info("Transaction to be saved: {}", transaction);
-        try {
-            transaction.validate();
-            TransactionDto savedTransaction = transactionService.save(transaction);
-            logger.info("The transaction was saved correctly");
-            return savedTransaction;
-        } catch (IllegalStateException | NullPointerException ex) {
-            logger.error(ex.getMessage());
-            throw new InvalidParameterException(ex.getMessage());
-        }
+        TransactionDto savedTransaction = transactionService.save(transaction);
+        logger.info("The transaction was saved correctly");
+        return savedTransaction;
     }
 
     @GetMapping(path= { "/", "" }, produces = "application/json")

@@ -6,7 +6,7 @@ import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -23,7 +23,7 @@ public class AccountDto {
   
   @Id
   private String iban;
-  private LocalDate date;
+  private LocalDateTime date;
   private double balance;
   
   public AccountDto() {
@@ -32,7 +32,7 @@ public class AccountDto {
   
   private AccountDto(Builder builder) {
     iban = builder.iban;
-    date = builder.date != null ? builder.date : LocalDate.now();
+    date = builder.date != null ? builder.date : LocalDateTime.now();
     balance = builder.balance;
   }
   
@@ -52,7 +52,7 @@ public class AccountDto {
     return iban;
   }
   
-  public LocalDate getDate() {
+  public LocalDateTime getDate() {
     return date;
   }
   
@@ -85,7 +85,7 @@ public class AccountDto {
   public static class Builder {
     
     private String iban;
-    private LocalDate date;
+    private LocalDateTime date;
     private double balance;
     private List<TransactionDto> transactions = Collections.EMPTY_LIST;
     
@@ -104,7 +104,7 @@ public class AccountDto {
       return this;
     }
     
-    public Builder date(final LocalDate date) {
+    public Builder date(final LocalDateTime date) {
       this.date = date;
       return this;
     }
