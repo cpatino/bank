@@ -1,24 +1,17 @@
 package com.codechallenge.bank.service;
 
-import com.codechallenge.bank.dao.AccountDAO;
 import com.codechallenge.bank.dao.TransactionDAO;
 import com.codechallenge.bank.exception.DataNotFoundException;
 import com.codechallenge.bank.model.Transaction;
-import com.codechallenge.bank.model.TransactionStatus;
-import com.codechallenge.bank.model.TransactionStatusRequester;
 import com.codechallenge.bank.model.dto.AccountDto;
 import com.codechallenge.bank.model.dto.TransactionDto;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -27,8 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static com.codechallenge.bank.model.Channel.*;
-import static com.codechallenge.bank.model.Status.*;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -38,18 +29,13 @@ import static org.mockito.Mockito.when;
  * @author Carlos Rodriguez
  * @since 26/09/2019
  */
-@ActiveProfiles("test")
-@RunWith(SpringJUnit4ClassRunner.class)
+@RunWith(SpringRunner.class)
+@SpringBootTest
 public class TransactionServiceTest {
   
-  @Autowired
-  private AccountService accountService;
-  
-  @Autowired
-  private TransactionDAO dao;
-  
-  @Autowired
-  private TransactionService service;
+  @Autowired private TransactionService service;
+  @MockBean private AccountService accountService;
+  @MockBean private TransactionDAO dao;
   
   @Test
   public void findById_notFound() {
@@ -149,7 +135,19 @@ public class TransactionServiceTest {
       .account("ABC123")
       .amount(100)
       .build();
+  
+    TransactionDto transactionDto = TransactionDto.builder(transaction)
+      .build();
+  
+    AccountDto account = AccountDto.builder()
+      .iban("ABC123")
+      .transactions(Collections.singletonList(TransactionDto.builder().amount(50).build()))
+      .balance(50)
+      .build();
+    
     when(accountService.findById("ABC123")).thenReturn(Optional.empty());
+    when(accountService.save(any(AccountDto.class))).thenReturn(account);
+    when(dao.save(any(TransactionDto.class))).thenReturn(transactionDto);
     try {
       service.save(transaction);
     } catch (ResponseStatusException ex) {
@@ -183,250 +181,6 @@ public class TransactionServiceTest {
     } catch (ResponseStatusException ex) {
       fail("Not expecting invalid parameter exception");
     }
-  }
-  
-  @Test
-  public void findStatusFromChannel_notFoundTransaction() {
-    TransactionStatus expectedStatus = TransactionStatus.builder().reference("12345A").status(INVALID).build();
-    TransactionStatusRequester requester = TransactionStatusRequester.builder().reference("12345A").build();
-    when(dao.findById("12345A")).thenReturn(Optional.empty());
-    TransactionStatus transactionStatus = service.findStatusFromChannel(requester);
-    assertEquals(expectedStatus, transactionStatus);
-  }
-  
-  @Test(expected = ResponseStatusException.class)
-  public void findStatusFromChannel_noChannelProvided_dateBeforeCurrent() {
-    TransactionStatusRequester requester = TransactionStatusRequester.builder()
-      .reference("12345A")
-      .build();
-    TransactionDto transaction = TransactionDto.builder()
-      .reference("12345A")
-      .date(LocalDateTime.now().minusDays(1))
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    when(dao.findById("12345A")).thenReturn(Optional.of(transaction));
-    service.findStatusFromChannel(requester);
-    fail("Expecting invalid parameter exception");
-  }
-  
-  @Test
-  public void findStatusFromChannel_clientChannel_dateBeforeCurrent() {
-    TransactionStatus expectedStatus = TransactionStatus.builder()
-      .reference("12345A")
-      .status(SETTLED)
-      .amount(190.20)
-      .build();
-    TransactionStatusRequester requester = TransactionStatusRequester.builder()
-      .reference("12345A")
-      .channel(CLIENT)
-      .build();
-    TransactionDto transaction = TransactionDto.builder()
-      .reference("12345A")
-      .date(LocalDateTime.now().minusDays(1))
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    when(dao.findById("12345A")).thenReturn(Optional.of(transaction));
-    TransactionStatus transactionStatus = service.findStatusFromChannel(requester);
-    assertEquals(expectedStatus, transactionStatus);
-    assertEquals(expectedStatus.getAmount(), transactionStatus.getAmount());
-    assertNull(transactionStatus.getFee());
-  }
-  
-  @Test
-  public void findStatusFromChannel_atmChannel_dateBeforeCurrent() {
-    TransactionStatus expectedStatus = TransactionStatus.builder()
-      .reference("12345A")
-      .status(SETTLED)
-      .amount(190.20)
-      .build();
-    TransactionStatusRequester requester = TransactionStatusRequester.builder()
-      .reference("12345A")
-      .channel(ATM)
-      .build();
-    TransactionDto transaction = TransactionDto.builder()
-      .reference("12345A")
-      .date(LocalDateTime.now().minusDays(1))
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    when(dao.findById("12345A")).thenReturn(Optional.of(transaction));
-    TransactionStatus transactionStatus = service.findStatusFromChannel(requester);
-    assertEquals(expectedStatus, transactionStatus);
-    assertEquals(expectedStatus.getAmount(), transactionStatus.getAmount());
-    assertNull(transactionStatus.getFee());
-  }
-  
-  @Test
-  public void findStatusFromChannel_internalChannel_dateBeforeCurrent() {
-    TransactionStatus expectedStatus = TransactionStatus.builder()
-      .reference("12345A")
-      .status(SETTLED)
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    TransactionStatusRequester requester = TransactionStatusRequester.builder()
-      .reference("12345A")
-      .channel(INTERNAL)
-      .build();
-    TransactionDto transaction = TransactionDto.builder()
-      .reference("12345A")
-      .date(LocalDateTime.now().minusDays(1))
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    when(dao.findById("12345A")).thenReturn(Optional.of(transaction));
-    TransactionStatus transactionStatus = service.findStatusFromChannel(requester);
-    assertEquals(expectedStatus, transactionStatus);
-    assertEquals(expectedStatus.getAmount(), transactionStatus.getAmount());
-    assertEquals(expectedStatus.getFee(), transactionStatus.getFee());
-  }
-  
-  @Test
-  public void findStatusFromChannel_clientChannel_dateEqualsCurrent() {
-    TransactionStatus expectedStatus = TransactionStatus.builder()
-      .reference("12345A")
-      .status(PENDING)
-      .amount(190.20)
-      .build();
-    TransactionStatusRequester requester = TransactionStatusRequester.builder()
-      .reference("12345A")
-      .channel(CLIENT)
-      .build();
-    TransactionDto transaction = TransactionDto.builder()
-      .reference("12345A")
-      .date(LocalDateTime.now())
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    when(dao.findById("12345A")).thenReturn(Optional.of(transaction));
-    TransactionStatus transactionStatus = service.findStatusFromChannel(requester);
-    assertEquals(expectedStatus, transactionStatus);
-    assertEquals(expectedStatus.getAmount(), transactionStatus.getAmount());
-    assertNull(transactionStatus.getFee());
-  }
-  
-  @Test
-  public void findStatusFromChannel_atmChannel_dateEqualsCurrent() {
-    TransactionStatus expectedStatus = TransactionStatus.builder()
-      .reference("12345A")
-      .status(PENDING)
-      .amount(190.20)
-      .build();
-    TransactionStatusRequester requester = TransactionStatusRequester.builder()
-      .reference("12345A")
-      .channel(ATM)
-      .build();
-    TransactionDto transaction = TransactionDto.builder()
-      .reference("12345A")
-      .date(LocalDateTime.now())
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    when(dao.findById("12345A")).thenReturn(Optional.of(transaction));
-    TransactionStatus transactionStatus = service.findStatusFromChannel(requester);
-    assertEquals(expectedStatus, transactionStatus);
-    assertEquals(expectedStatus.getAmount(), transactionStatus.getAmount());
-    assertNull(transactionStatus.getFee());
-  }
-  
-  @Test
-  public void findStatusFromChannel_internalChannel_dateEqualsCurrent() {
-    TransactionStatus expectedStatus = TransactionStatus.builder()
-      .reference("12345A")
-      .status(PENDING)
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    TransactionStatusRequester requester = TransactionStatusRequester.builder()
-      .reference("12345A")
-      .channel(INTERNAL)
-      .build();
-    TransactionDto transaction = TransactionDto.builder()
-      .reference("12345A")
-      .date(LocalDateTime.now())
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    when(dao.findById("12345A")).thenReturn(Optional.of(transaction));
-    TransactionStatus transactionStatus = service.findStatusFromChannel(requester);
-    assertEquals(expectedStatus, transactionStatus);
-    assertEquals(expectedStatus.getAmount(), transactionStatus.getAmount());
-    assertEquals(expectedStatus.getFee(), transactionStatus.getFee());
-  }
-  
-  @Test
-  public void findStatusFromChannel_clientChannel_dateAfterCurrent() {
-    TransactionStatus expectedStatus = TransactionStatus.builder()
-      .reference("12345A")
-      .status(FUTURE)
-      .amount(190.20)
-      .build();
-    TransactionStatusRequester requester = TransactionStatusRequester.builder()
-      .reference("12345A")
-      .channel(CLIENT)
-      .build();
-    TransactionDto transaction = TransactionDto.builder()
-      .reference("12345A")
-      .date(LocalDateTime.now().plusDays(1))
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    when(dao.findById("12345A")).thenReturn(Optional.of(transaction));
-    TransactionStatus transactionStatus = service.findStatusFromChannel(requester);
-    assertEquals(expectedStatus, transactionStatus);
-    assertEquals(expectedStatus.getAmount(), transactionStatus.getAmount());
-    assertNull(transactionStatus.getFee());
-  }
-  
-  @Test
-  public void findStatusFromChannel_atmChannel_dateAfterCurrent() {
-    TransactionStatus expectedStatus = TransactionStatus.builder()
-      .reference("12345A")
-      .status(PENDING)
-      .amount(190.20)
-      .build();
-    TransactionStatusRequester requester = TransactionStatusRequester.builder()
-      .reference("12345A")
-      .channel(ATM)
-      .build();
-    TransactionDto transaction = TransactionDto.builder()
-      .reference("12345A")
-      .date(LocalDateTime.now().plusDays(1))
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    when(dao.findById("12345A")).thenReturn(Optional.of(transaction));
-    TransactionStatus transactionStatus = service.findStatusFromChannel(requester);
-    assertEquals(expectedStatus, transactionStatus);
-    assertEquals(expectedStatus.getAmount(), transactionStatus.getAmount());
-    assertNull(transactionStatus.getFee());
-  }
-  
-  @Test
-  public void findStatusFromChannel_internalChannel_dateAfterCurrent() {
-    TransactionStatus expectedStatus = TransactionStatus.builder()
-      .reference("12345A")
-      .status(FUTURE)
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    TransactionStatusRequester requester = TransactionStatusRequester.builder()
-      .reference("12345A")
-      .channel(INTERNAL)
-      .build();
-    TransactionDto transaction = TransactionDto.builder()
-      .reference("12345A")
-      .date(LocalDateTime.now().plusDays(1))
-      .amount(193.38)
-      .fee(3.18)
-      .build();
-    when(dao.findById("12345A")).thenReturn(Optional.of(transaction));
-    TransactionStatus transactionStatus = service.findStatusFromChannel(requester);
-    assertEquals(expectedStatus, transactionStatus);
-    assertEquals(expectedStatus.getAmount(), transactionStatus.getAmount());
-    assertEquals(expectedStatus.getFee(), transactionStatus.getFee());
   }
   
   @Test(expected = DataNotFoundException.class)
@@ -511,33 +265,5 @@ public class TransactionServiceTest {
     List<TransactionDto> transactions = service.findAll("ABC123", "DESC");
     assertEquals(expectedTransaction2, transactions.get(0));
     assertEquals(expectedTransaction1, transactions.get(1));
-  }
-  
-  @Profile("test")
-  @Configuration
-  public static class SpringConfiguration {
-    
-    @Bean
-    @Primary
-    public AccountDAO accountDAO() {
-      return Mockito.mock(AccountDAO.class);
-    }
-    
-    @Bean
-    @Primary
-    public AccountService accountService() {
-      return Mockito.mock(AccountService.class);
-    }
-    
-    @Bean
-    @Primary
-    public TransactionDAO transactionDAO() {
-      return Mockito.mock(TransactionDAO.class);
-    }
-    
-    @Bean
-    public TransactionService transactionService() {
-      return new TransactionService();
-    }
   }
 }

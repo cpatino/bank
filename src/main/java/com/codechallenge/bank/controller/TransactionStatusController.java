@@ -2,7 +2,7 @@ package com.codechallenge.bank.controller;
 
 import com.codechallenge.bank.model.TransactionStatus;
 import com.codechallenge.bank.model.TransactionStatusRequester;
-import com.codechallenge.bank.service.TransactionService;
+import com.codechallenge.bank.service.TransactionStatusService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +29,7 @@ public class TransactionStatusController {
   private static final Logger logger = LoggerFactory.getLogger(TransactionStatusController.class);
   
   @Autowired
-  private TransactionService service;
+  private TransactionStatusService service;
   
   @GetMapping(path = {"/", ""}, produces = "application/json", consumes = "application/json")
   public TransactionStatus find(@RequestBody @Valid @NotNull final TransactionStatusRequester requester) {
