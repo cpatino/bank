@@ -10,8 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.context.annotation.Scope;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -58,9 +56,11 @@ public class TransactionService {
   
   public List<TransactionDto> findAll(final String iban, final String sortType) {
     AccountDto account = accountService.findById(iban).orElseThrow(() -> new DataNotFoundException("transactions", iban));
-    return (sortType == null || !("asc".equalsIgnoreCase(sortType) || "desc".equalsIgnoreCase(sortType))) ?
-      dao.findByAccount(account) :
-      dao.findByAccount(account, Sort.by(Sort.Direction.fromString(sortType), "amount"));
+    return Optional.ofNullable(sortType)
+      .filter(st -> "asc".equalsIgnoreCase(st) || "desc".equalsIgnoreCase(st))
+      .map(st -> Sort.by(Sort.Direction.fromString(st), "amount"))
+      .map(st -> dao.findByAccount(account, st))
+      .orElse(dao.findByAccount(account));
   }
   
   /**
