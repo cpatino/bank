@@ -32,7 +32,6 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
  * @since 26/09/2019
  */
 @Service
-@Scope(value = ConfigurableBeanFactory.SCOPE_SINGLETON)
 public class TransactionService {
   
   private static final Logger logger = LoggerFactory.getLogger(TransactionService.class);
