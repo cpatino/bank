@@ -6,9 +6,9 @@ package com.codechallenge.bank.exception;
  * @author Carlos Rodriguez
  * @since 26/09/2019
  */
-public class DataNotFoundException  extends RuntimeException{
-
-    public DataNotFoundException(final String objectType, final String id) {
-        super("Could not find " + objectType + " using " + id);
-    }
+public class DataNotFoundException extends RuntimeException {
+  
+  public DataNotFoundException(final String objectType, final String id) {
+    super("Could not find " + objectType + " using " + id);
+  }
 }

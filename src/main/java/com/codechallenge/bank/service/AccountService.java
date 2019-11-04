@@ -17,8 +17,7 @@ import java.util.Optional;
 @Service
 public class AccountService {
   
-  @Autowired
-  private AccountDAO dao;
+  @Autowired private AccountDAO dao;
   
   /**
    * Finds an {@link AccountDto} using the given iban (identifier)

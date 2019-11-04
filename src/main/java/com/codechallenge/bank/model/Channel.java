@@ -7,6 +7,6 @@ package com.codechallenge.bank.model;
  * @since 27/09/2019
  */
 public enum Channel {
-
-    CLIENT, ATM, INTERNAL
+  
+  CLIENT, ATM, INTERNAL
 }

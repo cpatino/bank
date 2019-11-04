@@ -7,6 +7,6 @@ package com.codechallenge.bank.model;
  * @since 27/09/2019
  */
 public enum Status {
-
-    PENDING, SETTLED, FUTURE, INVALID
+  
+  PENDING, SETTLED, FUTURE, INVALID
 }
