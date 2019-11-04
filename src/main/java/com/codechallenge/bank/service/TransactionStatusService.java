@@ -20,9 +20,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 public class TransactionStatusService {
   
   private static final Logger logger = LoggerFactory.getLogger(TransactionStatusService.class);
-  
-  @Autowired
-  private TransactionService transactionService;
+  @Autowired private TransactionService transactionService;
   
   /**
    * Finds the {@link TransactionStatus} for the reference from the {@link TransactionStatusRequester}
@@ -59,7 +57,7 @@ public class TransactionStatusService {
     return Optional.of(TransactionStatus.builder())
       .map(builder -> builder.status(calculateStatus(transaction.getDate(), channel)))
       .map(builder -> builder.reference(transaction.getReference()))
-      .map(builder -> builder.amount(calculateTransactionStatusAmount(transaction, channel)))
+      .map(builder -> builder.amount(calculateAmount(transaction, channel)))
       .map(builder -> {
         if (INTERNAL.equals(channel)) {
           builder.fee(transaction.getFee());
@@ -77,19 +75,38 @@ public class TransactionStatusService {
    * @return the {@link Status}
    */
   private Status calculateStatus(final LocalDateTime transactionDate, final Channel channel) {
-    LocalDateTime currentDate = LocalDateTime.now();
-    logger.info("Transaction date={}, current date={}", transactionDate, currentDate);
-    if (transactionDate.toLocalDate().isBefore(currentDate.toLocalDate())) {
-      return SETTLED;
-    } else if (transactionDate.toLocalDate().isEqual(currentDate.toLocalDate())
-      || (transactionDate.toLocalDate().isAfter(currentDate.toLocalDate()) && ATM.equals(channel))) {
-      return PENDING;
-    } else {
-      return FUTURE;
-    }
+    return calculateSettledStatus(transactionDate)
+      .or(() -> calculatePendingStatus(transactionDate))
+      .or(() -> calculatePendingStatusForATM(transactionDate, channel))
+      .or(() -> calculateFutureStatus(transactionDate))
+      .get();
   }
   
-  private double calculateTransactionStatusAmount(final TransactionDto transaction, final Channel channel) {
+  private Optional<Status> calculateSettledStatus(final LocalDateTime transactionDate) {
+    return Optional.of(LocalDateTime.now())
+      .filter(currentDate -> transactionDate.toLocalDate().isBefore(currentDate.toLocalDate()))
+      .map(c -> SETTLED);
+  }
+  
+  private Optional<Status> calculatePendingStatus(final LocalDateTime transactionDate) {
+    return Optional.of(LocalDateTime.now())
+      .filter(currentDate -> transactionDate.toLocalDate().isEqual(currentDate.toLocalDate()))
+      .map(c -> PENDING);
+  }
+  
+  private Optional<Status> calculatePendingStatusForATM(LocalDateTime transactionDate, Channel channel) {
+    return Optional.of(LocalDateTime.now())
+      .filter(currentDate -> transactionDate.toLocalDate().isAfter(currentDate.toLocalDate()) && getAtmPredicate().test(channel))
+      .map(c -> PENDING);
+  }
+  
+  private Optional<Status> calculateFutureStatus(final LocalDateTime transactionDate) {
+    return Optional.of(LocalDateTime.now())
+      .filter(currentDate -> transactionDate.toLocalDate().isAfter(currentDate.toLocalDate()))
+      .map(c -> FUTURE);
+  }
+  
+  private double calculateAmount(final TransactionDto transaction, final Channel channel) {
     return calculateClientAmount(transaction, channel)
       .or(() -> calculateAtmAmount(transaction, channel))
       .or(() -> calculateInternalAmount(transaction, channel))
