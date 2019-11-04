@@ -72,17 +72,10 @@ public class TransactionService {
   @Transactional
   public TransactionDto save(final Transaction transaction) {
     checkIsNewTransaction(transaction.getReference());
-    Optional<AccountDto> account = accountService.findById(transaction.getAccount());
-    double balance = checkBalance(account, transaction);
-    AccountDto accountDto = account.orElse(AccountDto.builder(transaction.getAccount()).build());
-    accountDto = accountService.save(AccountDto.builder(accountDto).balance(balance).build());
-    TransactionDto savedTransaction = dao.save(TransactionDto.builder(transaction)
-      .reference(StringUtils.isEmpty(transaction.getReference())
-        ? TransactionReferenceGenerator.generate() : transaction.getReference())
-      .account(accountDto)
-      .build());
-    logger.info("Saved transaction = {}", savedTransaction);
-    return savedTransaction;
+    return Optional.of(saveAccount(transaction.getAccount(), transaction.getAmount()))
+      .map(account -> buildTransaction(account, transaction))
+      .map(dao::save)
+      .get();
   }
   
   /**
@@ -97,39 +90,56 @@ public class TransactionService {
       .orElse(TransactionStatus.builder().reference(requester.getReference()).status(INVALID).build());
   }
   
+  private AccountDto saveAccount(final String iban, final double transactionAmount) {
+    AccountDto account = findAccountOrDefault(iban);
+    return Optional.of(account)
+      .map(a -> getNewBalance(a, transactionAmount))
+      .map(balance -> AccountDto.builder(account).balance(balance).build())
+      .map(accountService::save)
+      .get();
+  }
+  
+  private AccountDto findAccountOrDefault(final String iban) {
+    return accountService.findById(iban)
+      .or(() -> Optional.of(AccountDto.builder(iban).balance(0).build()))
+      .get();
+  }
+  
+  private TransactionDto buildTransaction(final AccountDto account, final Transaction transaction) {
+    return TransactionDto.builder(transaction)
+      .reference(getTransactionReference(transaction.getReference()))
+      .account(account)
+      .build();
+  }
+  
+  private String getTransactionReference(String reference) {
+    return StringUtils.isEmpty(reference) ? TransactionReferenceGenerator.generate() : reference;
+  }
+  
   /**
    * Checks if the given reference is not stored in the database
    *
    * @param reference the transaction's reference to be checked.
    */
   private void checkIsNewTransaction(String reference) {
-    if (StringUtils.isNotEmpty(reference) && dao.findById(reference).isPresent()) {
-      throw new ResponseStatusException(BAD_REQUEST, "The transaction cannot be saved, the reference "
-        + reference + " was already used in other transaction");
-    }
+    Optional.ofNullable(reference)
+      .flatMap(dao::findById)
+      .ifPresent(t -> {
+        throw new ResponseStatusException(BAD_REQUEST, "The transaction cannot be saved, the reference "
+          + reference + " was already used in other transaction");
+      });
   }
   
   /**
-   * Checks that the balance after apply the new amount is not below zero, also if it is a new account, it checks that
-   * the first transaction is not a credit.
+   * Get the account balance after apply the new transaction amount.
    *
-   * @param account        The {@link AccountDto} that has to be checked.
-   * @param newTransaction The {@link Transaction} that is going to be save.
+   * @param account           The {@link AccountDto} that has to be checked.
+   * @param transactionAmount The new transaction amount that is going to be saved.
    */
-  private double checkBalance(final Optional<AccountDto> account, final Transaction newTransaction) {
-    if (account.isEmpty()) {
-      if (newTransaction.getAmount() < 0) {
-        throw new ResponseStatusException(BAD_REQUEST, "The transaction cannot be saved, the balance account could not be below 0");
-      }
-      return newTransaction.getAmount();
-    } else {
-      double balance = account.get().getBalance() + newTransaction.getAmount();
-      logger.info("Balance={} from the account={} before save the new transaction", balance, account.get().getIban());
-      if (balance < 0) {
-        throw new ResponseStatusException(BAD_REQUEST, "The transaction cannot be saved, the balance account could not be below 0");
-      }
-      return balance;
-    }
+  private double getNewBalance(final AccountDto account, final double transactionAmount) {
+    return Optional.of(account)
+      .map(a -> a.getBalance() + transactionAmount)
+      .get();
   }
   
   /**
